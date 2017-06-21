@@ -3,7 +3,7 @@ var mongoose = require('mongoose');
 var reviewSchema = new mongoose.Schema({
     name : {
         type : String, 
-        required : true;
+        required : true
     },
     rating : {
         type : Number,
@@ -17,7 +17,7 @@ var reviewSchema = new mongoose.Schema({
     },
     createdOn : {
         type : Date,
-        "default" : Date.now;
+        "default" : Date.now
     }
 });
 
