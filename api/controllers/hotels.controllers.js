@@ -7,6 +7,7 @@ module.exports.hotelsGetAll = function (req, res) {
 
     var offset = 0;
     var count = 5;
+    var maxCount = 10;
 
     if (req.query && req.query.offset) {
         offset = parseInt(req.query.offset, 10);
@@ -16,13 +17,35 @@ module.exports.hotelsGetAll = function (req, res) {
         count = parseInt(req.query.count, 10);
     }
     
+    if (isNaN(offset) || isNaN(count)) {
+        res
+            .status(400)
+            .json({"message" : "Count and offset should both be numbers"});
+        return;
+    }
+    
+    if (count > maxCount) {
+        res
+            .status(400)
+            .json({"message" : "Count limit of " + maxCount + " exceeded"});
+        return;
+    }
+    
     Hotel   
         .find()
         .skip(offset)
         .limit(count)
         .exec(function(err, hotels) {
-            console.log("Found hotels", hotels.length);
-            res.json(hotels);
+            if (err) {
+                console.log("Error finding hotels");
+                res
+                    .status(500)
+                    .json(err);
+            } else {
+                console.log("Found hotels", hotels.length);
+                res.json(hotels);
+            }
+            
     });
 
 
@@ -38,9 +61,25 @@ module.exports.hotelsGetOne = function (req, res) {
     Hotel
         .findById(hotelId)
         .exec(function (err, doc) {
+            var response = {
+                status : 200, 
+                message : doc
+            };
+            
+            if (err) {
+                console.log("Error finding hotel");
+                response.status = 500;
+                response.message = err;
+            } else if (!doc) {
+                response.status = 404;
+                response.message = {"message" : "Hotel ID not found"};
+            } 
+            
             res
-                .status(200)
-                .json(doc);
+                .status(response.status)
+                .json(response.message);
+            
+            
         });
         
 };
