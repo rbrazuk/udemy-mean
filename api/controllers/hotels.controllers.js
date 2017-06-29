@@ -3,11 +3,12 @@ var Hotel = mongoose.model('Hotel');
 
 module.exports.hotelsGetAll = function (req, res) {
 
-
+    console.log("GET all hotels");
+    console.log(req.query);
 
     var offset = 0;
     var count = 5;
-    var maxCount = 10;
+    var maxCount = 50;
 
     if (req.query && req.query.offset) {
         offset = parseInt(req.query.offset, 10);
@@ -101,6 +102,7 @@ var _splitArray = function (input) {
 }
 
 module.exports.hotelsAddOne = function (req, res) {
+    console.log("POST new hotel");
 
     Hotel
         .create({
@@ -129,82 +131,75 @@ module.exports.hotelsAddOne = function (req, res) {
         });
 };
 
-module.exports.hotelsUpdateOne = function (req, res) {
+module.exports.hotelsUpdateOne = function(req, res) {
+  var hotelId = req.params.hotelId;
 
-    var hotelId = req.params.hotelId;
+  console.log('GET hotelId', hotelId);
 
-    console.log("GET hotelId", hotelId);
+  Hotel
+    .findById(hotelId)
+    .select('-reviews -rooms')
+    .exec(function(err, hotel) {
+      if (err) {
+        console.log("Error finding hotel");
+        res
+          .status(500)
+          .json(err);
+          return;
+      } else if(!hotel) {
+        console.log("HotelId not found in database", hotelId);
+        res
+          .status(404)
+          .lson({
+            "message" : "Hotel ID not found " + hotelId
+          });
+          return;
+      }
 
-    Hotel
-        .findById(hotelId)
-        .select("-reviews -rooms")
-        .exec(function (err, doc) {
-            var response = {
-                status: 200,
-                message: doc
-            };
+      hotel.name = req.body.name;
+      hotel.description = req.body.description;
+      hotel.stars = parseInt(req.body.stars,10);
+      hotel.services = _splitArray(req.body.services);
+      hotel.photos = _splitArray(req.body.photos);
+      hotel.currency = req.body.currency;
+      hotel.location = {
+        address : req.body.address,
+        coordinates : [parseFloat(req.body.lng), parseFloat(req.body.lat)]
+      };
 
-            if (err) {
-                console.log("Error finding hotel");
-                response.status = 500;
-                response.message = err;
-            } else if (!doc) {
-                response.status = 404;
-                response.message = {
-                    "message": "Hotel ID not found"
-                };
-            }
-
-            if (response.status !== 200) {
-                res
-                    .status(response.status)
-                    .json(response.message);
-            } else {
-                doc.name = req.body.name;
-                doc.description = req.body.description;
-                doc.stars = parseInt(req.body.stars, 10);
-                doc.services = _splitArray(req.body.services);
-                doc.photos = _splitArray(req.body.photos);
-                doc.currency = req.body.currency;
-                doc.location = {
-                    address: req.body.address,
-                    coordinates: [
-                        parseFloat(req.body.lng),
-                        parseFloat(req.body.lat)
-                    ]
-                };
-
-                doc.save(function (err, hotelUpdated) {
-                    if (err) {
-                        res
-                            .status(500)
-                            .json(err);
-                    } else {
-                        res
-                            .status(204)
-                            .json();
-                    }
-                });
-            }
-
+      hotel
+        .save(function(err, hotelUpdated) {
+          if(err) {
+            res
+              .status(500)
+              .json(err);
+          } else {
+            res
+              .status(204)
+              .json();
+          }
         });
+
+
+    });
 
 };
 
 module.exports.hotelsDeleteOne = function(req, res) {
-    var hotelId = req.params.hotelId;
-    Hotel
-        .findByIdAndRemove(hotelId)
-        .exec(function(err, hotel) {
-            if (err) {
-                res
-                    .status(404)
-                    .json(err);
-            } else {
-                console.log("Hotel deleted, id: ", hotelId);
-                res
-                    .status(204)
-                    .json();
-            }
+  var hotelId = req.params.hotelId;
+
+  Hotel
+    .findByIdAndRemove(hotelId)
+    .exec(function(err, location) {
+      if (err) {
+        res
+          .status(404)
+          .json(err);
+      } else {
+        console.log("Hotel deleted, id:", hotelId);
+        res
+          .status(204)
+          .json();
+      }
     });
 };
